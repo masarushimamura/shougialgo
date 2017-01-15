@@ -1,5 +1,8 @@
 
-# coding:  utf-8
+# coding: utf-8
+
+# %load shougi_algorithm.py
+
 
 # # 仕組み
 # 1、評価と選定
@@ -57,9 +60,8 @@ value_k = {"ou": [8,  8],  "gyoku": [8,  8],  "hisha": [12,  16],  "kaku": [12, 
 value_l = {"first": 1,  "second": 2,  "third": 3} 
 value_d = {"first": 2,  "second": 1}
 end_f = 0
-points =[]
-points2 =[]
-# player = [0,  2,  4]  # 各プレーヤの持ち駒
+
+# player = [0,  2,  4]  # 各プレーヤ所属の駒
 # computer = [3,  1,  6]
 # stage = {0: [1,  0],  2: [0,  1],  4: [2,  0],  3: [0,  2],  1: [1,  2],  6: [2,  2]}
 # 初期盤面（自分が下）後で自分とcpの駒の区別をつけられるようにしなきゃだめ
@@ -97,10 +99,10 @@ def lin(me):  # 列の点数を出すよ～
 
 
 def dist(me,  king):  # 王までの距離の点数を出すよ～
-    dist = np.sqrt((king[0] - me[0]) ** 2 + (king[1] - me[1]) ** 2)
-    if dist < 2 : 
+    dis = np.sqrt((king[0] - me[0]) ** 2 + (king[1] - me[1]) ** 2)
+    if dis < 2 :
         return "first"
-    elif dist >= 2 and dist <= 4 : 
+    elif dis >= 2 and dis <= 4 :
         return "second"
 
 
@@ -120,6 +122,7 @@ def movedstage(tomovestage,  choices):
 
 
 def cp_simu(stage, player, computer):
+    points = []
     for piece in computer:  # pieceを選択
         # print("*piece=",  piece)
         for w in way[kind[piece]]:  # wayを選択
@@ -129,12 +132,12 @@ def cp_simu(stage, player, computer):
             next_position = position + np.array(reverse_w)  # 進んだ先の座標
             l_next_position = next_position.tolist()  # numpyの配列と標準のリストの形が違うからinとかやってもダメ臭い=>ndarray.tolist()使おうや
             # print(list(map(lambda x: x >= 0 and x <= 2,  l_next_position)))
-            if all(map(lambda x: x >= 0 and x <= 2,  l_next_position)) == True:  # 進んだ先が盤面内に収まっているか
+            if all(map(lambda x: x >= 0 and x <= 2, l_next_position)):
+                # 進んだ先が盤面内に収まっているか
+                king_position = stage[0]  # 自分は王だから王のポジションを特定する
+                line = str(lin(next_position))  # 列の評価係数(function_lin)
+                distance = str(dist(l_next_position, king_position))  # 距離の評価係数(function_dist)
                 if l_next_position not in stage.values():  # 進んだ先に駒がなかった場合
-                    king_position = stage[0]  # 自分は王だから王のポジションを特定する
-                    line = str(lin(next_position))  # 列の評価係数(function_lin)
-                    # print("line=",  line)
-                    distance = str(dist(l_next_position,  king_position))  # 距離の評価係数(function_dist)
                     # print("l_next_position=",  l_next_position)
                     # print("distance=",  distance)
                     point = evaluation_n(piece,  line,  distance)
@@ -152,18 +155,18 @@ def cp_simu(stage, player, computer):
                         point = evaluation_r(piece,  line,  distance,  robable_piece)
                         # print("*駒取った+point=",  point) #手の駒の能力+列+距離の点数+取った駒の能力(function_evaluation)
                         points.append([point,  piece,  l_next_position, "robable_piece=",  robable_piece])
-                        # 動かした駒、動かした結果の評価点数、動かした場合その駒の位置、手に入れた駒
+                        # 動かした結果の評価点数、動かした駒、動かした場合その駒の位置、手に入れた駒
                     # else:
                         # print("味方やんけ")
             # else:
                 # print("進めないよ")
     return points
 
-
 # 3,  プレイヤーの手をシミュレートする関数
 
 
 def pl_simu(prestage,  player, computer):
+    points2 = []
     stage = prestage
     for piece in player:  # pieceを選択
         # print("*piece=",  piece)
@@ -173,7 +176,13 @@ def pl_simu(prestage,  player, computer):
             next_position = position + np.array(w)  # 進んだ先の座標
             l_next_position = next_position.tolist()  # numpyの配列と標準のリストの形が違うからinとかやってもダメ臭い=>ndarray.tolist()使おうや
             # print(list(map(lambda x: x >= 0 and x <= 2,  l_next_position)))
-            if all(map(lambda x: x >= 0 and x <= 2,  l_next_position)) == True:  # 進んだ先が盤面内に収まっているか
+            if all(map(lambda x: x >= 0 and x <= 2,  l_next_position)):
+                # 進んだ先が盤面内に収まっているか
+                king_position = stage[1]  # コンピュータは玉だから玉のポジションを特定する
+                line = str(lin(next_position))  # 列の評価係数(function_lin)
+                # print("line=",  line)
+                distance = str(dist(l_next_position, king_position))  # 距離の評価係数(function_dist)
+                # 進んだ先が盤面内に収まっているか
                 if l_next_position not in stage.values():  # 進んだ先に駒がなかった場合
                     king_position = stage[1] # コンピュータは玉だから玉のポジションを特定する
                     line = str(lin(next_position))  # 列の評価係数(function_lin)
@@ -196,7 +205,7 @@ def pl_simu(prestage,  player, computer):
                         point = evaluation_r(piece,  line,  distance,  robable_piece)
                         # print("*駒取った+point=",  point) #手の駒の能力+列+距離の点数+取った駒の能力(function_evaluation)
                         points2.append([point,  piece,  l_next_position, "robable_piece=",  robable_piece])
-                        # 動かした駒、動かした結果の評価点数、動かした場合その駒の位置、手に入れた駒
+                        # 動かした結果の評価点数、動かした駒、動かした場合その駒の位置、手に入れた駒
                     # else:
                         # print("味方やんけ")
             # else:
@@ -217,8 +226,13 @@ def selectway(stg, plr, cp):
         finaly_points.append(i[0] - max(plways)[0])
         # print("plways=",  plways)
         # print("finaly_points=",  finaly_points)
-    return cpways[finaly_points.index(max(finaly_points))][1]
+    return([cp_simu(stg, plr, cp)[finaly_points.index(max(finaly_points))][1],   # 動かす駒と動かす先
+           cp_simu(stg, plr, cp)[finaly_points.index(max(finaly_points))][2]]) 
+
 
 if __name__ == "__main__":
-    print("nextstage",  selectway())
-    print("originstage=",  stage)
+    print(selectway({0: [1,  0],  7: [0,  1],  4: [2,  0],  3: [0,  2],  1: [1,  2],  6: [2,  2]}, [0,  7,  4], [1,  3,  6]))
+
+
+
+
